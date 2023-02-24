@@ -61,6 +61,12 @@ Parameters:
     Default: true
     Type: String
     AllowedValues: [true, false]
+  
+  AliasName:
+    Type: String
+
+  CertARN:
+    Type: String
 
 Conditions:
   CreateEntitlementLogic:
@@ -93,6 +99,12 @@ Resources:
         DefaultRootObject: "index.html"
         Enabled: true
         HttpVersion: http2
+        Aliases: 
+        - !Ref AliasName
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertARN
+          MinimumProtocolVersion: TLSv1.2_2018
+          SslSupportMethod: sni-only
         # List of origins that Cloudfront will connect to
         Origins:
           - Id: s3-website
@@ -131,12 +143,20 @@ Resources:
     Condition: CreateWeb
     Properties:
       BucketName: !Ref WebsiteS3BucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
 
   WebsiteS3BucketLog:
     Type: AWS::S3::Bucket
     Condition: CreateWeb
     Properties:
       BucketName: !Join ["-", [!Ref WebsiteS3BucketName, "log"]]
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
       IntelligentTieringConfigurations:
         - Id: !Join ["-", [!Ref WebsiteS3BucketName, "log"]]
           Status: Enabled
@@ -165,7 +185,7 @@ Resources:
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
     Properties:
-      Runtime: nodejs18.x
+      Runtime: nodejs12.x
       CodeUri: src/lambda-edge/
       Handler: edge-redirect.lambdaHandler
       Timeout: 5
@@ -184,6 +204,10 @@ Resources:
     Type: AWS::DynamoDB::Table
     Condition: CreateSubscriptionLogic
     Properties:
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       AttributeDefinitions:
         - AttributeName: "customerIdentifier"
           AttributeType: "S"
@@ -210,6 +234,10 @@ Resources:
   AWSMarketplaceSubscribers:
     Type: AWS::DynamoDB::Table
     Properties:
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       AttributeDefinitions:
         - AttributeName: "customerIdentifier"
           AttributeType: "S"
@@ -226,7 +254,7 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: register-new-subscriber.registerNewSubscriber
-      Runtime: nodejs18.x
+      Runtime: nodejs12.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
@@ -273,6 +301,8 @@ Resources:
   EntitlementSQSQueue:
     Type: AWS::SQS::Queue
     Condition: CreateEntitlementLogic
+    Properties:
+      KmsMasterKeyId: alias/aws/sqs
 
   EntitlementSQSHandler:
     Type: AWS::Serverless::Function
@@ -280,7 +310,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: entitlement-sqs.handler
-      Runtime: nodejs18.x
+      Runtime: nodejs12.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
@@ -310,7 +340,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: subscription-sqs.SQSHandler
-      Runtime: nodejs18.x
+      Runtime: nodejs12.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
@@ -334,6 +364,7 @@ Resources:
   SupportSNSTopic:
     Type: AWS::SNS::Topic
     Properties:
+      KmsMasterKeyId: alias/aws/sns
       Subscription:
         - Endpoint: !Ref MarketplaceTechAdminEmail
           Protocol: email
@@ -343,7 +374,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: grant-revoke-access-to-product.dynamodbStreamHandler
-      Runtime: nodejs18.x
+      Runtime: nodejs12.x
       Environment:
         Variables:
           SupportSNSArn: !Ref SupportSNSTopic
@@ -370,7 +401,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: metering-hourly-job.job
-      Runtime: nodejs18.x
+      Runtime: nodejs12.x
       Environment:
         Variables:
           SQSMeteringRecordsUrl: !Ref SQSMeteringRecords
@@ -396,6 +427,7 @@ Resources:
       ContentBasedDeduplication: true
       FifoQueue: true
       MessageRetentionPeriod: 3000
+      KmsMasterKeyId: alias/aws/sqs
     Condition: CreateSubscriptionLogic
 
   MeteringSQSHandler:
@@ -404,7 +436,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: metering-sqs.handler
-      Runtime: nodejs18.x
+      Runtime: nodejs12.x
       Environment:
         Variables:
           ProductCode: !Ref ProductCode
