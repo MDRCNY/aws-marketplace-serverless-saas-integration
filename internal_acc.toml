@@ -1,0 +1,13 @@
+version = 0.1
+[dev]
+[dev.deploy]
+[dev.deploy.parameters]
+stack_name = "marketplace-sam-app"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-x2t6izh8l075"
+s3_prefix = "marketplace-sam-app"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+parameter_overrides = "WebsiteS3BucketName=\"vcr-commercial-website-marketplace\" NewSubscribersTableName=\"VCRCommercialSubcribers\" AWSMarketplaceMeteringRecordsTableName=\"VCRCommercialMeteringRecords\" TypeOfSaaSListing=\"contracts_with_subscription\" ProductCode=\"6bl5xjzmkv13vxotqv3d2t9ac\" MarketplaceTechAdminEmail=\"mannachi+mdrc@amazon.com\" MarketplaceSellerEmail=\"mannachi+mdrc@amazon.com\" EntitlementSNSTopic=\"arn:aws:sns:us-east-1:287250355862:aws-mp-entitlement-notification-6bl5xjzmkv13vxotqv3d2t9ac\" SubscriptionSNSTopic=\"arn:aws:sns:us-east-1:287250355862:aws-mp-subscription-notification-6bl5xjzmkv13vxotqv3d2t9ac\" CreateRegistrationWebPage=\"true\" AliasName=\"aws.vcr.org\" CertARN=\"arn:aws:acm:us-east-1:711592834286:certificate/fc20ba4e-0670-46ec-a488-124cfd70fa9e\""
+image_repositories = []

@@ -54,18 +54,18 @@ exports.dynamodbStreamHandler = async (event, context) => {
       let message = '########## Customer Details ########## \n';
       let subject = '';
 
-      message += 'Customer Identifier = ' + event.customerIdentifier.S + '\n';
-      message += 'Customer Contact email = ' + event.contactEmail.S + '\n';
-      message += 'Successfully subscribed = ' + event.successfully_subscribed.BOOL + '\n';
-      message += 'Company Name = ' + event.companyName.S + '\n';
-      message += 'Is subscription expired = ' + event.subscription_expired.BOOL + '\n';
-      message += 'Customer Contact Name = ' + event.contactPerson.S + '\n';
-      message += 'Customer Contact Number = ' + event.contactPhone.S + '\n';
-      message += 'Product Code bought = ' + event.productCode.S + '\n\n';
+      message += 'Customer Identifier = ' + newImage.customerIdentifier + '\n';
+      message += 'Customer Contact email = ' + newImage.contactEmail + '\n';
+      message += 'Successfully subscribed = ' + newImage.successfully_subscribed + '\n';
+      message += 'Company Name = ' + newImage.companyName + '\n';
+      message += 'Is subscription expired = ' + newImage.subscription_expired + '\n';
+      message += 'Customer Contact Name = ' + newImage.contactPerson + '\n';
+      message += 'Customer Contact Number = ' + newImage.contactPhone + '\n';
+      message += 'Product Code bought = ' + newImage.productCode + '\n\n';
 
-      if (event.entitlement !== null && event.entitlement.S !== null && event.entitlement.S.Entitlements != null) {
-        for (let i=0; i< event.entitlement.S.Entitlements.length; i++) {
-          let entitlement = event.entitlement.S.Entitlements[i];
+      if (newImage.entitlement !== null && newImage.entitlement !== null && newImage.entitlement.Entitlements != null) {
+        for (let i=0; i< newImage.entitlement.Entitlements.length; i++) {
+          let entitlement = newImage.entitlement.Entitlements[i];
           message += ' ########## Entitlement Details '+(i+1)+' ########## \n';
           message += 'Dimension = ' + entitlement.Dimension + '\n';
           message += 'Product Code = ' + entitlement.ProductCode + '\n';
