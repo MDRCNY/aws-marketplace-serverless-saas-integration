@@ -51,19 +51,41 @@ exports.dynamodbStreamHandler = async (event, context) => {
     logger.debug('entitlementUpdated', { 'data': entitlementUpdated });
 
     if (grantAccess || revokeAccess || entitlementUpdated) {
-      let message = '';
+      let message = '########## Customer Details ########## \n';
       let subject = '';
+
+      message += 'Customer Identifier = ' + event.customerIdentifier.S + '\n';
+      message += 'Customer Contact email = ' + event.contactEmail.S + '\n';
+      message += 'Successfully subscribed = ' + event.successfully_subscribed.BOOL + '\n';
+      message += 'Company Name = ' + event.companyName.S + '\n';
+      message += 'Is subscription expired = ' + event.subscription_expired.BOOL + '\n';
+      message += 'Customer Contact Name = ' + event.contactPerson.S + '\n';
+      message += 'Customer Contact Number = ' + event.contactPhone.S + '\n';
+      message += 'Product Code bought = ' + event.productCode.S + '\n\n';
+
+      if (event.entitlement !== null && event.entitlement.S !== null && event.entitlement.S.Entitlements != null) {
+        for (let i=0; i< event.entitlement.S.Entitlements.length; i++) {
+          let entitlement = event.entitlement.S.Entitlements[i];
+          message += ' ########## Entitlement Details '+(i+1)+' ########## \n';
+          message += 'Dimension = ' + entitlement.Dimension + '\n';
+          message += 'Product Code = ' + entitlement.ProductCode + '\n';
+          if(entitlement.Value != null && entitlement.Value.IntegerValue != null){
+                  message += 'Quantity/Count = ' + entitlement.Value.IntegerValue + '\n';
+          }
+          message += 'Expiration on = ' + entitlement.ExpirationDate + '\n';
+        }
+      }
 
 
       if (grantAccess) {
         subject = 'New AWS Marketplace Subscriber';
-        message = `Grant access to new SaaS customer: ${JSON.stringify(newImage)}`;
+        message = 'Grant access to new SaaS customer:\n' + message;
       } else if (revokeAccess) {
         subject = 'AWS Marketplace customer end of subscription';
-        message = `Revoke access to SaaS customer: ${JSON.stringify(newImage)}`;
+        message = 'Revoke access to SaaS customer: \n' + message;
       } else if (entitlementUpdated) {
         subject = 'AWS Marketplace customer change of subscription';
-        message = `New entitlement for customer: ${JSON.stringify(newImage)}`;
+        message = 'New entitlement for customer: \n' + message;
       }
 
       const SNSparams = {
