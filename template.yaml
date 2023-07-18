@@ -67,6 +67,10 @@ Parameters:
 
   CertARN:
     Type: String
+  # Customization for MDRC
+  ProductType:
+    Type: String
+    Description: Gov Cloud or Commercial Account product
 
 Conditions:
   CreateEntitlementLogic:
@@ -185,7 +189,7 @@ Resources:
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
     Properties:
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
       CodeUri: src/lambda-edge/
       Handler: edge-redirect.lambdaHandler
       Timeout: 5
@@ -254,7 +258,7 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: register-new-subscriber.registerNewSubscriber
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
@@ -310,7 +314,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: entitlement-sqs.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
@@ -340,7 +344,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: subscription-sqs.SQSHandler
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
@@ -374,11 +378,15 @@ Resources:
     Properties:
       CodeUri: src
       Handler: grant-revoke-access-to-product.dynamodbStreamHandler
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
       Environment:
         Variables:
           SupportSNSArn: !Ref SupportSNSTopic
           LOG_LEVEL: "info"
+          PRODUCT_TYPE: !Ref ProductType
+          ACCOUNT_CREATE_QUEUE_URL: !ImportValue VCR-SubMgmt-AccountCreateQueue
+          MGMT_OU_ID: ou-f5y2-j8hsydys
+          FINAL_BILL_QUEUE_URL: !ImportValue VCR-SubMgmt-FinallBillQueue
       Policies:
         - AWSLambdaDynamoDBExecutionRole
         - Statement:
@@ -387,6 +395,13 @@ Resources:
               Action:
                 - sns:Publish
               Resource: !Ref SupportSNSTopic
+            - Sid: SQSPublish
+              Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: 
+                - !ImportValue VCR-SubMgmt-AccountCreateQueue-Arn
+                - !ImportValue VCR-SubMgmt-FinallBillQueue-Arn
       Events:
         Stream:
           Type: DynamoDB
@@ -401,7 +416,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: metering-hourly-job.job
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
       Environment:
         Variables:
           SQSMeteringRecordsUrl: !Ref SQSMeteringRecords
@@ -436,7 +451,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: metering-sqs.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
       Environment:
         Variables:
           ProductCode: !Ref ProductCode

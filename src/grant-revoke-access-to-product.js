@@ -2,6 +2,8 @@ const winston = require('winston');
 const AWS = require('aws-sdk');
 
 const SNS = new AWS.SNS({ apiVersion: '2010-03-31' });
+const sqs = new AWS.SQS({ apiVersion: '2012-11-05' });
+
 const { SupportSNSArn: TopicArn } = process.env;
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -63,26 +65,77 @@ exports.dynamodbStreamHandler = async (event, context) => {
       message += 'Customer Contact Number = ' + newImage.contactPhone + '\n';
       message += 'Product Code bought = ' + newImage.productCode + '\n\n';
 
-      if (newImage.entitlement !== null && newImage.entitlement !== null && newImage.entitlement.Entitlements != null) {
-        for (let i=0; i< newImage.entitlement.Entitlements.length; i++) {
-          let entitlement = newImage.entitlement.Entitlements[i];
-          message += ' ########## Entitlement Details '+(i+1)+' ########## \n';
-          message += 'Dimension = ' + entitlement.Dimension + '\n';
-          message += 'Product Code = ' + entitlement.ProductCode + '\n';
-          if(entitlement.Value != null && entitlement.Value.IntegerValue != null){
-                  message += 'Quantity/Count = ' + entitlement.Value.IntegerValue + '\n';
+      if(newImage.entitlement){
+        logger.debug('entitlements', { 'data': JSON.parse(newImage.entitlement) });
+        let entitlementData = JSON.parse(newImage.entitlement);
+        if (entitlementData && entitlementData.Entitlements) {
+          for (i=0; i < entitlementData.Entitlements.length ; i++) {
+            let et = entitlementData.Entitlements[i];
+            message += ' ########## Entitlement Details '+(i+1)+' ########## \n';
+            message += 'Dimension = ' + et.Dimension + '\n';
+            message += 'Product Code = ' + et.ProductCode + '\n';
+            if(et.Value != null && et.Value.IntegerValue != null){
+                    message += 'Quantity/Count = ' + et.Value.IntegerValue + '\n';
+            }
+            message += 'Expiration on = ' + et.ExpirationDate + '\n';
           }
-          message += 'Expiration on = ' + entitlement.ExpirationDate + '\n';
         }
       }
+
+      
 
 
       if (grantAccess) {
         subject = 'New AWS Marketplace Subscriber';
         message = 'Grant access to new SaaS customer:\n' + message;
+         logger.debug('Enter grantAccess ...');
+
+         var params = {
+          MessageAttributes: {
+            Author: {
+              DataType: "String",
+              StringValue: "User",
+            }
+          },
+          MessageGroupId: "vcr.new.account",
+          MessageDeduplicationId : newImage.customerIdentifier,
+          MessageBody: JSON.stringify({
+              "customerIdentifier": newImage.customerIdentifier,
+              "productType": process.env.PRODUCT_TYPE,
+              "org_id": process.env.MGMT_OU_ID
+            }),
+          QueueUrl: process.env.ACCOUNT_CREATE_QUEUE_URL
+        };
+        
+        let queueRes = await sqs.sendMessage(params).promise();
+        logger.debug('grantAccess - queueRes', { 'data': queueRes });
+
+
       } else if (revokeAccess) {
         subject = 'AWS Marketplace customer end of subscription';
         message = 'Revoke access to SaaS customer: \n' + message;
+        logger.debug('Enter revokeAccess ...');
+
+        var params = {
+          MessageAttributes: {
+            Author: {
+              DataType: "String",
+              StringValue: "User",
+            }
+          },
+          MessageGroupId: "vcr.unsubscribe.account",
+          MessageDeduplicationId : newImage.customerIdentifier,
+          MessageBody: JSON.stringify({
+              "customerIdentifier": newImage.customerIdentifier,
+              "productType": process.env.PRODUCT_TYPE,
+              "accountId": newImage.VCRAccountId
+            }),
+          QueueUrl: process.env.FINAL_BILL_QUEUE_URL
+        };
+        
+        let queueRes = await sqs.sendMessage(params).promise();
+        logger.debug('revokeAccess - queueRes', { 'data': queueRes });
+
       } else if (entitlementUpdated) {
         subject = 'AWS Marketplace customer change of subscription';
         message = 'New entitlement for customer: \n' + message;
@@ -97,6 +150,7 @@ exports.dynamodbStreamHandler = async (event, context) => {
       logger.info('Sending notification');
       logger.debug('SNSparams', { 'data': SNSparams });
       await SNS.publish(SNSparams).promise();
+      
     }
   }));
 
