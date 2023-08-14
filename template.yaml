@@ -189,7 +189,7 @@ Resources:
     UpdateReplacePolicy: Delete
     DeletionPolicy: Delete
     Properties:
-      Runtime: nodejs14.x
+      Runtime: nodejs18.x
       CodeUri: src/lambda-edge/
       Handler: edge-redirect.lambdaHandler
       Timeout: 5
@@ -258,7 +258,7 @@ Resources:
     Properties:
       CodeUri: src/
       Handler: register-new-subscriber.registerNewSubscriber
-      Runtime: nodejs14.x
+      Runtime: nodejs18.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
@@ -314,7 +314,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: entitlement-sqs.handler
-      Runtime: nodejs14.x
+      Runtime: nodejs18.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
@@ -344,7 +344,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: subscription-sqs.SQSHandler
-      Runtime: nodejs14.x
+      Runtime: nodejs18.x
       Environment:
         Variables:
           NewSubscribersTableName: !Ref NewSubscribersTableName
@@ -378,7 +378,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: grant-revoke-access-to-product.dynamodbStreamHandler
-      Runtime: nodejs14.x
+      Runtime: nodejs18.x
       Environment:
         Variables:
           SupportSNSArn: !Ref SupportSNSTopic
@@ -416,7 +416,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: metering-hourly-job.job
-      Runtime: nodejs14.x
+      Runtime: nodejs18.x
       Environment:
         Variables:
           SQSMeteringRecordsUrl: !Ref SQSMeteringRecords
@@ -451,7 +451,7 @@ Resources:
     Properties:
       CodeUri: src
       Handler: metering-sqs.handler
-      Runtime: nodejs14.x
+      Runtime: nodejs18.x
       Environment:
         Variables:
           ProductCode: !Ref ProductCode
