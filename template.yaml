@@ -471,6 +471,7 @@ Resources:
           Properties:
             Queue: !GetAtt SQSMeteringRecords.Arn
             BatchSize: 1
+
 Outputs:
   APIUrl:
     Description: API gateway URL to replace baseUrl value in web/script.js

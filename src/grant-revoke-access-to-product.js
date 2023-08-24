@@ -102,7 +102,8 @@ exports.dynamodbStreamHandler = async (event, context) => {
           MessageBody: JSON.stringify({
               "customerIdentifier": newImage.customerIdentifier,
               "productType": process.env.PRODUCT_TYPE,
-              "org_id": process.env.MGMT_OU_ID
+              "org_id": process.env.MGMT_OU_ID,
+              "userlist_file_s3_key": newImage.adUsersS3Key
             }),
           QueueUrl: process.env.ACCOUNT_CREATE_QUEUE_URL
         };
