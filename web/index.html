@@ -23,39 +23,49 @@
   <form class="form-signin" method="POST" enctype="multipart/form-data">
     <div class="container alert alert-secondary">
       <div id="alert"></div>
-      <img class="mb-4" src="logo.png" alt="" width="72" height="72">
-      <h1 class="h3 mb-3 font-weight-normal">Please enter your contact details</h1>
+      <img class="mb-4" src="sprout.png" alt="sprout-vcr" width="50%" height="35%">
+      <h1 class="h3 mb-3 font-weight-normal">Step 1: Please enter your contact details</h1>
+      <div class="row clearfix mt-3">
+        <div class="col-md-3 column">
 
-      <label for="companyName" class="sr-only">Company name</label>
-      <input type="text" name="companyName" class="form-control" placeholder="Company name" required autofocus>
+        </div>
+        <div class="col-md-6 column">
+          <label for="companyName" class="sr-only">Company name</label>
+          <input type="text" name="companyName" class="form-control" placeholder="Company name" required autofocus>
 
-      <label for="contactPerson" class="sr-only">Contact person</label>
-      <input type="text" name="contactPerson" class="form-control" placeholder="Contact person" required autofocus>
+          <label for="contactPerson" class="sr-only">Contact person</label>
+          <input type="text" name="contactPerson" class="form-control" placeholder="Contact person" required autofocus>
 
-      <label for="Contact phone" class="sr-only">Contact phone</label>
-      <input type="tel" name="contactPhone" class="form-control" placeholder="Contact phone" required autofocus>
+          <label for="Contact phone" class="sr-only">Contact phone</label>
+          <input type="tel" name="contactPhone" class="form-control" placeholder="Contact phone" required autofocus>
 
-      <label for="contactEmail" class="sr-only">Email address</label>
-      <input type="email" name="contactEmail" class="form-control" placeholder="Email address" required autofocus>
+          <label for="contactEmail" class="sr-only">Email address</label>
+          <input type="email" name="contactEmail" class="form-control" placeholder="Email address" required autofocus>
+
+          <label for="contactAddress" class="sr-only">Physical address</label>
+          <input type="text" name="contactAddress" class="form-control" placeholder="Physical Address" required autofocus>
+        </div>
+      </div>
     </div>
-    <div class="container bottomspace alert alert-info">
-      <h3 class="h3 mb-3 font-weight-normal">Please upload user names as CSV File before Register </h3>
-      <div class="row clearfix">
+    <div class="container alert alert-info">
+      <p class="h3 mb-3 font-weight-normal">Step 2: Please upload Workspace Users details as CSV File before clicking Register, Sample Below for download 
+      <div class="row clearfix mt-3">
+        <div class="col-md-12 column">
+           <button id="downloadsample" class="btn btn-default btn-sm btn-success pull-left"
+            onclick="downloadsampleFromS3()">Download Sample User File</button></p>
+        </div>
+      </div>
+      <div class="row clearfix mt-3">
         <div class="col-md-12 column">
           <input id="usersupload" type="file" accept=".csv" required>,
           <button id="addphoto" class="btn btn-default btn-sm btn-success pull-left"
             onclick="uploadUsersFiletoS3(event)">Upload</button>
-          <input type="hidden" name="adUsersS3Key" id="ADUsersS3Prefix" value="" required >
+          <input type="hidden" name="adUsersS3Key" id="ADUsersS3Prefix" value="" required>
         </div>
       </div>
+    </div>
 
-    </div>
-    <div class="container">
-      Download Sample CSV File here >>
-      <button id="downloadsample" class="btn btn-default btn-sm btn-success pull-left"
-        onclick="downloadsampleFromS3()">Download Sample</button>
-    </div>
-    <button class="btn btn-lg btn-primary" type="submit">Register</button>
+    <p class="h3 mb-3 font-weight-normal"> Step 3: Click Register Button </p> <button class="btn btn-lg btn-primary" type="submit">Register</button>
     <p class="mt-5 mb-3 text-muted">&copy; 2023</p>
   </form>
 

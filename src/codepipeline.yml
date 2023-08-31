@@ -1,0 +1,97 @@
+
+
+Resources:
+  # The CI/CD pipeline stitching the full mechanism together
+  MarketplacePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Sub "${AWS::StackName}-Pipeline"
+      RoleArn: !GetAtt MarketplacePipelineRole.Arn
+      Stages:
+        - Actions:
+            # Initiate Pipeline from CodeCommit
+            - ActionTypeId: 
+                Version: '1'
+                Provider: CodeCommit
+                Category: Source
+                Owner: AWS
+              OutputArtifacts:
+                - Name: source
+              InputArtifacts: []
+              Name: source
+              Configuration:
+                RepositoryName: !Ref CodeCommitRepoName
+                BranchName: main
+                PollForSourceChanges: 'false'
+              RunOrder: 1
+              Namespace: SourceVars
+          Name: Checkout-CodeCommit   
+
+  MarketplacePipelinePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - codebuild:BatchGetBuilds
+              - codebuild:StartBuild
+              - codebuild:StopBuild
+            Effect: Allow
+            Resource: !GetAtt S3UploadCodeBuildProject.Arn
+          - Action:
+              - s3:GetObject
+              - s3:ListBucket
+              - s3:PutObject
+            Effect: Allow
+            Resource: 
+              - !GetAtt DemoArtifactBucket.Arn
+              - !Sub "${DemoArtifactBucket.Arn}/*"
+          - Action:
+              - codecommit:*
+            Effect: Allow
+            Resource: 
+              - !Sub "arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${CodeCommitRepoName}"
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Resource: !GetAtt BuildImgParamActionRole.Arn
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Resource: !GetAtt BuildImgCFRole.Arn
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Resource: !GetAtt BuildImgCreateActionRole.Arn
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Resource: !GetAtt BuildImgApplyActionRole.Arn
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Resource: !GetAtt DeployImgCFRole.Arn
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Resource: !GetAtt DeployImgCreateActionRole.Arn
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Resource: !GetAtt DeployImgApplyActionRole.Arn
+          - Action:
+              - sns:Publish
+              - sns:CreateTopic
+              - sns:DeleteTopic
+              - sns:Subscribe
+              - sns:Unsubscribe
+              - sns:GetTopicAttributes
+            Effect: Allow
+            Resource: "*"
+      Roles:
+        - Ref: MarketplacePipelineRole
+
+  MarketplacePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
