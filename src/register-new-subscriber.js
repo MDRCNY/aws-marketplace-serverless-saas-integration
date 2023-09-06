@@ -50,11 +50,11 @@ const setBuyerNotificationHandler = function (contactEmail) {
 
 exports.registerNewSubscriber = async (event) => {
   const {
-    regToken, companyName, contactPerson, contactPhone, contactEmail,adUsersS3Key
+    regToken, companyName, contactPerson, contactPhone, contactEmail,adUsersS3Key, contactAddress
   } = JSON.parse(event.body);
 
   // Validate the request
-  if (regToken && companyName && contactPerson && contactPhone && contactEmail && adUsersS3Key) {
+  if (regToken && companyName && contactPerson && contactPhone && contactEmail && adUsersS3Key && contactAddress) {
     try {
       // Call resolveCustomer to validate the subscriber
       const resolveCustomerParams = {
@@ -80,8 +80,10 @@ exports.registerNewSubscriber = async (event) => {
           customerIdentifier: { S: CustomerIdentifier },
           productCode: { S: ProductCode },
           customerAWSAccountID: { S: CustomerAWSAccountId },  
-          adUsersS3Key: { S: adUsersS3Key },          
+          adUsersS3Key: { S: adUsersS3Key },  
+          contactAddress: {S: contactAddress},        
           created: { S: datetime },
+
         },
       };
 

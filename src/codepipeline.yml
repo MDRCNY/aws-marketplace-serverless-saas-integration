@@ -1,18 +1,39 @@
 
 
 Resources:
+  # S3 Bucket to contain the build artifacts from CodeBuild in order to
+  # hand them over to CloudFormation
+  PipelineArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: 'AES256'
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
   # The CI/CD pipeline stitching the full mechanism together
   MarketplacePipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
       Name: !Sub "${AWS::StackName}-Pipeline"
       RoleArn: !GetAtt MarketplacePipelineRole.Arn
+      ArtifactStore:
+        Location: !Ref PipelineArtifactBucket
+        Type: S3
       Stages:
         - Actions:
             # Initiate Pipeline from CodeCommit
             - ActionTypeId: 
                 Version: '1'
-                Provider: CodeCommit
+                Provider: CodeStarSourceConnection
                 Category: Source
                 Owner: AWS
               OutputArtifacts:
@@ -20,12 +41,110 @@ Resources:
               InputArtifacts: []
               Name: source
               Configuration:
-                RepositoryName: !Ref CodeCommitRepoName
-                BranchName: main
-                PollForSourceChanges: 'false'
+                ConnectionArn: "arn:aws:codestar-connections:us-east-1:711592834286:connection/0a71d274-8c68-4ee9-9f47-a061b67e6543"
+                FullRepositoryId: "MDRCNY/aws-marketplace-serverless-saas-integration"
+                BranchName: "master"
+                OutputArtifactFormat: "CODE_ZIP"
               RunOrder: 1
               Namespace: SourceVars
-          Name: Checkout-CodeCommit   
+          Name: Checkout-Repo
+        - Actions:
+            # Upload config files s3 to location
+            - ActionTypeId: 
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              Configuration:
+                ProjectName: !Ref SiteUploadCodeBuildProject
+              InputArtifacts:
+                - Name: source
+              Name: Site_Upload
+              RunOrder: 1
+              Namespace: BuildVars   
+          Name: MarketplaceSiteUpload    
+  
+
+  # Role assumed by AWS CodeBuild to perform the compilation; see the 
+  # attached policy for detail
+  SiteUploadCodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+  
+  # Policy for AWS CodeBuild to perform the compilation; mainly needs 
+  # access to S3 bucket for storing artifacts and to CloudWatch Logs
+  CodeBuildPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Effect: Allow
+            Resource: "*"
+              #- !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${SiteUploadCodeBuildProject}"
+              #- !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${SiteUploadCodeBuildProject}:*"
+          - Action:
+              - s3:GetObject
+              - s3:ListBucket
+              - s3:PutObject
+            Effect: Allow
+            Resource: "*"
+              #- !GetAtt DemoArtifactBucket.Arn
+              #- !Sub "${DemoArtifactBucket.Arn}/*"
+          - Action:
+              - cloudfront:CreateInvalidation
+            Effect: Allow
+            Resource: "arn:aws:cloudfront::711592834286:distribution/E3MY7CN6AGEGZA"
+              #- !GetAtt DemoArtifactBucket.Arn
+              #- !Sub "${DemoArtifactBucket.Arn}/*"
+      Roles:
+        - Ref: SiteUploadCodeBuildRole
+
+  SiteUploadCodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:5.0
+        ImagePullCredentialsType: CODEBUILD
+        PrivilegedMode: false
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: UPLOAD_BUCKET 
+            Value: !Ref PipelineArtifactBucket
+            
+      ServiceRole: !GetAtt SiteUploadCodeBuildRole.Arn
+      Source:
+        BuildSpec: |-
+          {
+            "version": "0.2",
+            "phases": {
+              "build": {
+                "commands": [
+                  "echo 'copying to s3 and updating cloudfront cache...' ",
+                  "aws s3 cp ./web s3://vcr-gov-website-marketplace --recursive",
+                  "aws cloudfront create-invalidation --distribution-id E3MY7CN6AGEGZA --paths '/*'"
+                ]
+              }
+            },
+          }
+        Type: CODEPIPELINE
+      Cache:
+        Type: NO_CACHE
+      Description: Pipeline step push files to s3
 
   MarketplacePipelinePolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -38,50 +157,17 @@ Resources:
               - codebuild:StartBuild
               - codebuild:StopBuild
             Effect: Allow
-            Resource: !GetAtt S3UploadCodeBuildProject.Arn
+            Resource: "*"
           - Action:
               - s3:GetObject
               - s3:ListBucket
               - s3:PutObject
             Effect: Allow
-            Resource: 
-              - !GetAtt DemoArtifactBucket.Arn
-              - !Sub "${DemoArtifactBucket.Arn}/*"
-          - Action:
-              - codecommit:*
-            Effect: Allow
-            Resource: 
-              - !Sub "arn:${AWS::Partition}:codecommit:${AWS::Region}:${AWS::AccountId}:${CodeCommitRepoName}"
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Resource: !GetAtt BuildImgParamActionRole.Arn
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Resource: !GetAtt BuildImgCFRole.Arn
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Resource: !GetAtt BuildImgCreateActionRole.Arn
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Resource: !GetAtt BuildImgApplyActionRole.Arn
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Resource: !GetAtt DeployImgCFRole.Arn
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Resource: !GetAtt DeployImgCreateActionRole.Arn
-          - Action: sts:AssumeRole
-            Effect: Allow
-            Resource: !GetAtt DeployImgApplyActionRole.Arn
-          - Action:
-              - sns:Publish
-              - sns:CreateTopic
-              - sns:DeleteTopic
-              - sns:Subscribe
-              - sns:Unsubscribe
-              - sns:GetTopicAttributes
-            Effect: Allow
             Resource: "*"
+          - Action:
+              - codestar-connections:UseConnection
+            Effect: Allow
+            Resource: "arn:aws:codestar-connections:us-east-1:711592834286:connection/0a71d274-8c68-4ee9-9f47-a061b67e6543"
       Roles:
         - Ref: MarketplacePipelineRole
 
