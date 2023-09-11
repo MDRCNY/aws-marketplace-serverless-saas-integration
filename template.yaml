@@ -144,6 +144,7 @@ Resources:
 
   WebsiteS3Bucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy:  Retain
     Condition: CreateWeb
     Properties:
       BucketName: !Ref WebsiteS3BucketName
@@ -155,6 +156,7 @@ Resources:
   WebsiteS3BucketLog:
     Type: AWS::S3::Bucket
     Condition: CreateWeb
+    DeletionPolicy:  Retain
     Properties:
       BucketName: !Join ["-", [!Ref WebsiteS3BucketName, "log"]]
       BucketEncryption:
@@ -167,6 +169,9 @@ Resources:
           Tierings:
             - AccessTier: ARCHIVE_ACCESS
               Days: 90
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
 
   S3BucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -382,7 +387,7 @@ Resources:
       Environment:
         Variables:
           SupportSNSArn: !Ref SupportSNSTopic
-          LOG_LEVEL: "info"
+          LOG_LEVEL: "debug"
           PRODUCT_TYPE: !Ref ProductType
           ACCOUNT_CREATE_QUEUE_URL: !ImportValue VCR-SubMgmt-AccountCreateQueue
           MGMT_OU_ID: ou-f5y2-j8hsydys

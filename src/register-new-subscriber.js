@@ -97,7 +97,8 @@ exports.registerNewSubscriber = async (event) => {
               "Message" : {
                   "action" : "entitlement-updated",
                   "customer-identifier": "${CustomerIdentifier}",
-                  "product-code" : "${ProductCode}"
+                  "product-code" : "${ProductCode}",
+                  "userlist-s3-key" : "${adUsersS3Key}"
                   } 
               }`,
           QueueUrl: entitlementQueueUrl,

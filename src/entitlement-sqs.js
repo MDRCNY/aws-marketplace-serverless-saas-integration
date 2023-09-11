@@ -32,11 +32,12 @@ exports.handler = async (event) => {
         Key: {
           customerIdentifier: { S: message['customer-identifier'] },
         },
-        UpdateExpression: 'set entitlement = :e, successfully_subscribed = :ss, subscription_expired = :se',
+        UpdateExpression: 'set entitlement = :e, successfully_subscribed = :ss, subscription_expired = :se, adUsersS3Key = :ul',
         ExpressionAttributeValues: {
           ':e': { S: JSON.stringify(entitlementsResponse) },
           ':ss': { BOOL: true },
           ':se': { BOOL: isExpired },
+          ':ul': { S: message['userlist-s3-key'] },
         },
         ReturnValues: 'UPDATED_NEW',
       };
