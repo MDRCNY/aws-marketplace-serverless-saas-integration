@@ -117,6 +117,11 @@ Resources:
               # Restricting Bucket access through an origin access identity
               OriginAccessIdentity:
                 Fn::Sub: "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
+        Restrictions:
+             GeoRestriction:
+                  RestrictionType: whitelist
+                  Locations:
+                       - "US"
         # To connect the CDN to the origins you need to specify behaviours
         DefaultCacheBehavior:
           # Compress resources automatically ( gzip )
