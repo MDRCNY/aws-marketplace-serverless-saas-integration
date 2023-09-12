@@ -248,7 +248,7 @@ Resources:
                 "commands": [
                   "sam build",
                   "sam package --output-template-file packaged.yaml --s3-bucket mdrc-marketplace-artifacts",
-                  "echo 'Commercial marketplace Product saas integration START...",
+                  "echo 'Commercial marketplace Product saas integration START...'",
                   "sam deploy --template-file packaged.yaml --stack-name vcr-commercial --capabilities CAPABILITY_IAM \
                   --region us-east-1 \
                   --parameter-overrides ParameterKey=WebsiteS3BucketName,ParameterValue=vcr-commercial-website-marketplace \
@@ -261,8 +261,8 @@ Resources:
                   ParameterKey=AWSMarketplaceMeteringRecordsTableName,ParameterValue=VCRCommercialMeteringRecords \
                   ParameterKey=EntitlementSNSTopic,ParameterValue=arn:aws:sns:us-east-1:287250355862:aws-mp-entitlement-notification-6bl5xjzmkv13vxotqv3d2t9ac \
                   ParameterKey=ProductType,ParameterValue=Commercial",
-                  "echo 'Commercial marketplace Product saas integration COMPLETE...",
-                  "echo 'GovCloud marketplace Product saas integration START...",
+                  "echo 'Commercial marketplace Product saas integration COMPLETE...'",
+                  "echo 'GovCloud marketplace Product saas integration START...'",
                   "sam deploy --template-file packaged.yaml --stack-name vcr-gov --capabilities CAPABILITY_IAM \
                   --region us-east-1 \
                   --parameter-overrides ParameterKey=WebsiteS3BucketName,ParameterValue=vcr-gov-website-marketplace \
@@ -274,8 +274,8 @@ Resources:
                   ParameterKey=NewSubscribersTableName,ParameterValue=VCRGovSubcribers \
                   ParameterKey=AWSMarketplaceMeteringRecordsTableName,ParameterValue=VCRGovMeteringRecords \
                   ParameterKey=EntitlementSNSTopic,ParameterValue=arn:aws:sns:us-east-1:287250355862:aws-mp-entitlement-notification-3q99e7mct4l1721py63vitp57 \
-                  ParameterKey=ProductType,ParameterValue=GovCloud"
-                  "echo 'GovCloud marketplace Product saas integration DONE...",
+                  ParameterKey=ProductType,ParameterValue=GovCloud",
+                  "echo 'GovCloud marketplace Product saas integration DONE...'",
                 ]
               }
             },
