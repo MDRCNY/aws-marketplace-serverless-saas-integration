@@ -1,5 +1,3 @@
-
-
 Resources:
   # S3 Bucket to contain the build artifacts from CodeBuild in order to
   # hand them over to CloudFormation
@@ -7,9 +5,9 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketEncryption:
-          ServerSideEncryptionConfiguration:
-            - ServerSideEncryptionByDefault:
-                SSEAlgorithm: 'AES256'
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: "AES256"
       VersioningConfiguration:
         Status: Enabled
       PublicAccessBlockConfiguration:
@@ -31,8 +29,8 @@ Resources:
       Stages:
         - Actions:
             # Initiate Pipeline from CodeCommit
-            - ActionTypeId: 
-                Version: '1'
+            - ActionTypeId:
+                Version: "1"
                 Provider: CodeStarSourceConnection
                 Category: Source
                 Owner: AWS
@@ -50,7 +48,7 @@ Resources:
           Name: Checkout-Repo
         - Actions:
             # Upload config files s3 to location
-            - ActionTypeId: 
+            - ActionTypeId:
                 Category: Build
                 Owner: AWS
                 Provider: CodeBuild
@@ -61,11 +59,10 @@ Resources:
                 - Name: source
               Name: Site_Upload
               RunOrder: 1
-              Namespace: BuildVars   
-          Name: MarketplaceSiteUpload    
-  
+              Namespace: BuildVars
+          Name: MarketplaceSiteUpload
 
-  # Role assumed by AWS CodeBuild to perform the compilation; see the 
+  # Role assumed by AWS CodeBuild to perform the compilation; see the
   # attached policy for detail
   SiteUploadCodeBuildRole:
     Type: AWS::IAM::Role
@@ -77,8 +74,8 @@ Resources:
             Effect: Allow
             Principal:
               Service: codebuild.amazonaws.com
-  
-  # Policy for AWS CodeBuild to perform the compilation; mainly needs 
+
+  # Policy for AWS CodeBuild to perform the compilation; mainly needs
   # access to S3 bucket for storing artifacts and to CloudWatch Logs
   CodeBuildPolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -91,21 +88,21 @@ Resources:
               - logs:CreateLogStream
               - logs:PutLogEvents
             Effect: Allow
-            Resource: "*"
-              #- !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${SiteUploadCodeBuildProject}"
-              #- !Sub "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/${SiteUploadCodeBuildProject}:*"
+            Resource:
+              "*"
           - Action:
               - s3:GetObject
               - s3:ListBucket
               - s3:PutObject
             Effect: Allow
-            Resource: "*"
+            Resource:
+              "*"
               #- !GetAtt DemoArtifactBucket.Arn
               #- !Sub "${DemoArtifactBucket.Arn}/*"
           - Action:
               - cloudfront:CreateInvalidation
             Effect: Allow
-            Resource: 
+            Resource:
               - "arn:aws:cloudfront::711592834286:distribution/E3MY7CN6AGEGZA"
               - "arn:aws:cloudfront::711592834286:distribution/E1LMPNQCFWDXVF"
       Roles:
@@ -123,9 +120,9 @@ Resources:
         PrivilegedMode: false
         Type: LINUX_CONTAINER
         EnvironmentVariables:
-          - Name: UPLOAD_BUCKET 
+          - Name: UPLOAD_BUCKET
             Value: !Ref PipelineArtifactBucket
-            
+
       ServiceRole: !GetAtt SiteUploadCodeBuildRole.Arn
       Source:
         BuildSpec: |-
@@ -134,13 +131,23 @@ Resources:
             "phases": {
               "build": {
                 "commands": [
-                  "echo 'copying to s3 and updating cloudfront cache...' ",
+                  "echo 'Updating Commercial Product Marketplace site ...' ",
                   "mkdir web-commercial",
-                  "cp -r web web-commercial",
-                  "cd web-commercial",
-                  "sed -i 's/APIGATEWAY_ID/kfmwrmdfj9/g' script.js",
+                  "cp web/*.* web-commercial",
+                  "ls -lart web-commercial",
+                  "sed -i 's/APIGATEWAY_ID/kfmwrmdfj9/g' web-commercial/script.js",
                   "aws s3 cp ./web-commercial s3://vcr-commercial-website-marketplace --recursive",
-                  "aws cloudfront create-invalidation --distribution-id E1LMPNQCFWDXVF --paths '/*'"
+                  "aws cloudfront create-invalidation --distribution-id E1LMPNQCFWDXVF --paths '/*'",
+                  "echo 'Updating Commercial Product Marketplace site COMPLETE...' ",
+                  "echo 'Updating GovCloud Product Marketplace site ...' ",
+                  "mkdir web-gov",
+                  "cp web/*.* web-gov",
+                  "ls -lart web-gov",
+                  "sed -i 's/APIGATEWAY_ID/aud2d1892e/g' web-commercial/script.js",
+                  "aws s3 cp ./web-commercial s3://vcr-gov-website-marketplace --recursive",
+                  "aws cloudfront create-invalidation --distribution-id E3MY7CN6AGEGZA --paths '/*'",
+                  "echo 'Updating GovCloud Product Marketplace site COMPLETE...' ",
+
                 ]
               }
             },
