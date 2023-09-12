@@ -54,6 +54,21 @@ Resources:
                 Provider: CodeBuild
                 Version: "1"
               Configuration:
+                ProjectName: !Ref MarketPlaceIntegrationUpdateProject
+              InputArtifacts:
+                - Name: source
+              Name: DeploySaaSIntegration
+              RunOrder: 1
+              Namespace: IntegrationVars
+          Name: MarketPlaceSaaSIntegration
+        - Actions:
+            # Upload config files s3 to location
+            - ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              Configuration:
                 ProjectName: !Ref SiteUploadCodeBuildProject
               InputArtifacts:
                 - Name: source
@@ -147,7 +162,6 @@ Resources:
                   "aws s3 cp ./web-commercial s3://vcr-gov-website-marketplace --recursive",
                   "aws cloudfront create-invalidation --distribution-id E3MY7CN6AGEGZA --paths '/*'",
                   "echo 'Updating GovCloud Product Marketplace site COMPLETE...' ",
-
                 ]
               }
             },
@@ -192,3 +206,81 @@ Resources:
             Effect: Allow
             Principal:
               Service: codepipeline.amazonaws.com
+
+  MarketPlaceIntegrationUpdateRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: MarketPlaceIntegrationUpdateRole
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AdministratorAccess"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+
+  MarketPlaceIntegrationUpdateProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:5.0
+        ImagePullCredentialsType: CODEBUILD
+        PrivilegedMode: false
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: UPLOAD_BUCKET
+            Value: !Ref PipelineArtifactBucket
+
+      ServiceRole: !GetAtt MarketPlaceIntegrationUpdateRole.Arn
+      Source:
+        BuildSpec: |-
+          {
+            "version": "0.2",
+            "phases": {
+              "build": {
+                "commands": [
+                  "sam build",
+                  "sam package --output-template-file packaged.yaml --s3-bucket mdrc-marketplace-artifacts",
+                  "echo 'Commercial marketplace Product saas integration START...",
+                  "sam deploy --template-file packaged.yaml --stack-name vcr-commercial --capabilities CAPABILITY_IAM \
+                  --region us-east-1 \
+                  --parameter-overrides ParameterKey=WebsiteS3BucketName,ParameterValue=vcr-commercial-website-marketplace \
+                  ParameterKey=ProductCode,ParameterValue=6bl5xjzmkv13vxotqv3d2t9ac \
+                  ParameterKey=SubscriptionSNSTopic,ParameterValue=arn:aws:sns:us-east-1:287250355862:aws-mp-subscription-notification-6bl5xjzmkv13vxotqv3d2t9ac \
+                  ParameterKey=MarketplaceTechAdminEmail,ParameterValue=procurementc@mdrc.org \
+                  ParameterKey=AliasName,ParameterValue=awsmp.mdrcsprout.org \
+                  ParameterKey=CertARN,ParameterValue=arn:aws:acm:us-east-1:711592834286:certificate/fc20ba4e-0670-46ec-a488-124cfd70fa9e \
+                  ParameterKey=NewSubscribersTableName,ParameterValue=VCRCommercialSubcribers \
+                  ParameterKey=AWSMarketplaceMeteringRecordsTableName,ParameterValue=VCRCommercialMeteringRecords \
+                  ParameterKey=EntitlementSNSTopic,ParameterValue=arn:aws:sns:us-east-1:287250355862:aws-mp-entitlement-notification-6bl5xjzmkv13vxotqv3d2t9ac \
+                  ParameterKey=ProductType,ParameterValue=Commercial",
+                  "echo 'Commercial marketplace Product saas integration COMPLETE...",
+                  "echo 'GovCloud marketplace Product saas integration START...",
+                  "sam deploy --template-file packaged.yaml --stack-name vcr-gov --capabilities CAPABILITY_IAM \
+                  --region us-east-1 \
+                  --parameter-overrides ParameterKey=WebsiteS3BucketName,ParameterValue=vcr-gov-website-marketplace \
+                  ParameterKey=ProductCode,ParameterValue=3q99e7mct4l1721py63vitp57 \
+                  ParameterKey=SubscriptionSNSTopic,ParameterValue=arn:aws:sns:us-east-1:287250355862:aws-mp-subscription-notification-3q99e7mct4l1721py63vitp57 \
+                  ParameterKey=MarketplaceTechAdminEmail,ParameterValue=procurementc@mdrc.org \
+                  ParameterKey=AliasName,ParameterValue=awsmpgov.mdrcsprout.org \
+                  ParameterKey=CertARN,ParameterValue=arn:aws:acm:us-east-1:711592834286:certificate/fc20ba4e-0670-46ec-a488-124cfd70fa9e \
+                  ParameterKey=NewSubscribersTableName,ParameterValue=VCRGovSubcribers \
+                  ParameterKey=AWSMarketplaceMeteringRecordsTableName,ParameterValue=VCRGovMeteringRecords \
+                  ParameterKey=EntitlementSNSTopic,ParameterValue=arn:aws:sns:us-east-1:287250355862:aws-mp-entitlement-notification-3q99e7mct4l1721py63vitp57 \
+                  ParameterKey=ProductType,ParameterValue=GovCloud"
+                  "echo 'GovCloud marketplace Product saas integration DONE...",
+                ]
+              }
+            },
+          }
+        Type: CODEPIPELINE
+      Cache:
+        Type: NO_CACHE
+      Description: CodeBuild to deploy SaaS Integration in Marketplace
