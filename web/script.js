@@ -1,4 +1,4 @@
-const baseUrl = 'https://aud2d1892e.execute-api.us-east-1.amazonaws.com/Prod/'; // TODO: This needs to be replaced
+const baseUrl = 'https://APIGATEWAY_ID.execute-api.us-east-1.amazonaws.com/Prod/'; // TODO: This needs to be replaced
 const form = document.getElementsByClassName('form-signin')[0];
 var adUsersBucketName = "vcr-ad-usernames-bucket";
 var bucketRegion = "us-east-1";

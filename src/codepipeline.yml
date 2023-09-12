@@ -105,9 +105,9 @@ Resources:
           - Action:
               - cloudfront:CreateInvalidation
             Effect: Allow
-            Resource: "arn:aws:cloudfront::711592834286:distribution/E3MY7CN6AGEGZA"
-              #- !GetAtt DemoArtifactBucket.Arn
-              #- !Sub "${DemoArtifactBucket.Arn}/*"
+            Resource: 
+              - "arn:aws:cloudfront::711592834286:distribution/E3MY7CN6AGEGZA"
+              - "arn:aws:cloudfront::711592834286:distribution/E1LMPNQCFWDXVF"
       Roles:
         - Ref: SiteUploadCodeBuildRole
 
@@ -135,8 +135,12 @@ Resources:
               "build": {
                 "commands": [
                   "echo 'copying to s3 and updating cloudfront cache...' ",
-                  "aws s3 cp ./web s3://vcr-gov-website-marketplace --recursive",
-                  "aws cloudfront create-invalidation --distribution-id E3MY7CN6AGEGZA --paths '/*'"
+                  "mkdir web-commercial",
+                  "cp -r web web-commercial",
+                  "cd web-commercial",
+                  "sed -i 's/APIGATEWAY_ID/kfmwrmdfj9/g' script.js",
+                  "aws s3 cp ./web-commercial s3://vcr-commercial-website-marketplace --recursive",
+                  "aws cloudfront create-invalidation --distribution-id E1LMPNQCFWDXVF --paths '/*'"
                 ]
               }
             },
