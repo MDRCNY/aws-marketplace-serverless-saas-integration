@@ -35,8 +35,7 @@ exports.dynamodbStreamHandler = async (event, context) => {
         - for SaaS Subscriptions: after reciving the unsubscribe-success message in subscription-sqs.js
     */
     const grantAccess = newImage.successfully_subscribed === true &&
-      typeof newImage.is_free_trial_term_present !== "undefined" &&
-      (oldImage.successfully_subscribed !== true || typeof oldImage.is_free_trial_term_present === "undefined")
+      oldImage.successfully_subscribed !== true;
 
 
     const revokeAccess = newImage.subscription_expired === true
