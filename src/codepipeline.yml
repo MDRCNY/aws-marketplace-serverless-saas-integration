@@ -39,14 +39,27 @@ Resources:
               InputArtifacts: []
               Name: source
               Configuration:
-                ConnectionArn: "arn:aws:codestar-connections:us-east-1:711592834286:connection/0a71d274-8c68-4ee9-9f47-a061b67e6543"
+                ConnectionArn: !Sub "arn:${AWS::Partition}:codestar-connections:${AWS::Region}:${AWS::AccountId}:connection/0a71d274-8c68-4ee9-9f47-a061b67e6543"
                 FullRepositoryId: "MDRCNY/aws-marketplace-serverless-saas-integration"
                 BranchName: "master"
                 OutputArtifactFormat: "CODE_ZIP"
               RunOrder: 1
               Namespace: SourceVars
-          Name: Checkout-Repo
+          Name: Checkout-aws-marketplace-serverless-saas-integration
         - Actions:
+            # Get Product Owner Approval
+            - ActionTypeId: 
+                Category: Approval
+                Owner: AWS
+                Provider: Manual
+                Version: "1"
+              Configuration:
+                CustomData: 'Please approve this change. Commit message: #{SourceVars.CommitMessage}'
+                #NotificationArn: !Ref ApprovalEmailTopic
+                #ExternalEntityLink: !Sub "https://${AWS::Region}.console.aws.amazon.com/codesuite/codecommit/repositories/${CodeCommitRepoName}/commit/#{SourceVars.CommitId}?region=${AWS::Region}"
+              Name: Deployment_Approval
+              RunOrder: 1
+              Namespace: ApprovalCFParamCreateVars 
             # Upload config files s3 to location
             - ActionTypeId:
                 Category: Build
@@ -58,7 +71,7 @@ Resources:
               InputArtifacts:
                 - Name: source
               Name: DeploySaaSIntegration
-              RunOrder: 1
+              RunOrder: 2
               Namespace: IntegrationVars
           Name: MarketPlaceSaaSIntegration
         - Actions:
@@ -73,7 +86,7 @@ Resources:
               InputArtifacts:
                 - Name: source
               Name: Site_Upload
-              RunOrder: 1
+              RunOrder: 3
               Namespace: BuildVars
           Name: MarketplaceSiteUpload
 
@@ -118,8 +131,8 @@ Resources:
               - cloudfront:CreateInvalidation
             Effect: Allow
             Resource:
-              - "arn:aws:cloudfront::711592834286:distribution/E3MY7CN6AGEGZA"
-              - "arn:aws:cloudfront::711592834286:distribution/E1LMPNQCFWDXVF"
+              - !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/E3MY7CN6AGEGZA"
+              - !Sub "arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/E1LMPNQCFWDXVF"
       Roles:
         - Ref: SiteUploadCodeBuildRole
 
@@ -192,7 +205,7 @@ Resources:
           - Action:
               - codestar-connections:UseConnection
             Effect: Allow
-            Resource: "arn:aws:codestar-connections:us-east-1:711592834286:connection/0a71d274-8c68-4ee9-9f47-a061b67e6543"
+            Resource: !Sub "arn:${AWS::Partition}:codestar-connections:${AWS::Region}:${AWS::AccountId}:connection/0a71d274-8c68-4ee9-9f47-a061b67e6543"
       Roles:
         - Ref: MarketplacePipelineRole
 
