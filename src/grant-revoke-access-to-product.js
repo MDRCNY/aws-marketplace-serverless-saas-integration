@@ -115,26 +115,28 @@ exports.dynamodbStreamHandler = async (event, context) => {
         subject = 'AWS Marketplace customer end of subscription';
         message = 'Revoke access to SaaS customer: \n' + message;
         logger.debug('Enter revokeAccess ...');
-
-        var params = {
-          MessageAttributes: {
-            Author: {
-              DataType: "String",
-              StringValue: "User",
-            }
-          },
-          MessageGroupId: "vcr.unsubscribe.account",
-          MessageDeduplicationId : newImage.customerIdentifier,
-          MessageBody: JSON.stringify({
-              "customerIdentifier": newImage.customerIdentifier,
-              "productType": process.env.PRODUCT_TYPE,
-              "accountId": newImage.VCRAccountId
-            }),
-          QueueUrl: process.env.FINAL_BILL_QUEUE_URL
-        };
-        
-        let queueRes = await sqs.sendMessage(params).promise();
-        logger.debug('revokeAccess - queueRes', { 'data': queueRes });
+        if(newImage.VCRAccountId) {
+          var params = {
+            MessageAttributes: {
+              Author: {
+                DataType: "String",
+                StringValue: "User",
+              }
+            },
+            MessageGroupId: "vcr.unsubscribe.account",
+            MessageDeduplicationId : newImage.customerIdentifier,
+            MessageBody: JSON.stringify({
+                "customerIdentifier": newImage.customerIdentifier,
+                "productType": process.env.PRODUCT_TYPE,
+                "accountId": newImage.VCRAccountId
+              }),
+            QueueUrl: process.env.FINAL_BILL_QUEUE_URL
+          };
+          
+          let queueRes = await sqs.sendMessage(params).promise();
+          logger.debug('revokeAccess - queueRes', { 'data': queueRes });
+        }
+        logger.debug('revokeAccess - Complete');
 
       } else if (entitlementUpdated) {
         subject = 'AWS Marketplace customer change of subscription';
